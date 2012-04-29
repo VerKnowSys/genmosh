@@ -9,6 +9,9 @@ pty = require "pty.js"
 app_port = 51233
 app_name = "genmosh"
 home_prefix = "/Users/"
+mosh_client_command = "mosh-client"
+mosh_server_command = "mosh-server"
+mosh_command_params = ["--", "svdshell"]
 mosh_server_host_ip = "78.46.95.147"
 mosh_keyfile = "mosh.authkey" 
 mosh_terminal_cols = 80
@@ -38,7 +41,8 @@ app.post '/auth/:uid/:uuid', (req, res) ->
       console.log "Found authkey for UID: #{uid} -> UUID: #{uuid} in #{home_prefix}#{uid}/#{mosh_keyfile}"
       if uuid == data
         console.log "Matched authkey for UID: #{uid} -> #{data} == #{uuid}"
-        term = pty.spawn "mosh-server", ["--", "svdshell", uid], # in ServeD: "svdshell", uid
+        mosh_command_params.push(uid) # it's only required for ServeD Shell
+        term = pty.spawn "#{mosh_server_command}", mosh_command_params,
           cols: mosh_terminal_cols
           rows: mosh_terminal_rows
         
@@ -47,12 +51,11 @@ app.post '/auth/:uid/:uuid', (req, res) ->
           if result
             mosh_port = result[1]
             mosh_key = result[2]
-            res.send "MOSH_KEY=#{mosh_key} mosh-client #{mosh_server_host_ip} #{mosh_port}\n"
+            res.send "MOSH_KEY=#{mosh_key} #{mosh_client_command} #{mosh_server_host_ip} #{mosh_port}\n"
         
       else
         console.error "Bad try with invalid match of #{data} vs #{uuid}"
         res.redirect default_redirect_site
-  
 
 
 app.get '*', (req, res) ->
