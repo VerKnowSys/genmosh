@@ -15,7 +15,7 @@ mosh_user_limit_logged_in_at_once = 5
 mosh_client_command = "mosh-client"
 mosh_server_command = "mosh-server"
 mosh_server_host_ip = "78.46.95.147"
-mosh_keyfile = "mosh.keys"
+mosh_keyfile = "mosh.keys" # EXAMPLE file contents: [{"sha": "31a532a8b458d6a3f3ed816464c30ba4fbde8f4f", "uid": "username"}]
 mosh_terminal_cols = 80
 mosh_terminal_rows = 30
 mosh_matcher = /MOSH CONNECT (\d+?) ([\w*|\/|\+]+)/
@@ -50,11 +50,11 @@ app.post '/auth/:uuid', (req, res) ->
       move_out res
     else
       input_objects = JSON.parse "#{input_data}"
-      for object in input_objects
-        data = object.sha
-        uid = object.uid
+      input_objects.map (object) ->
+        if uuid.indexOf(object.sha) > -1
+          data = object.sha
+          uid = object.uid
       
-        if uuid.indexOf(data) > -1 # fastest available way?
           console.log "* Matched valid authkey for UID: #{uid} from IP: #{req.connection.remoteAddress} -> #{uuid} in #{home_prefix}#{mosh_keyfile}"
           
           logged_in_users[uid] = [] unless logged_in_users[uid] # add info about logged in user
@@ -66,7 +66,7 @@ app.post '/auth/:uuid', (req, res) ->
               rows: mosh_terminal_rows
             setTimeout -> # after mosh session timeout, we may try log in again
                 logged_in_users[uid].pop()
-                console.log "* Popped passkey for UID: #{uid}. Remained sessions: #{logged_in_users[uid]}"
+                console.log "* Popped passkey for UID: #{uid}. Logged in users this UID: #{logged_in_users[uid].length}"
               , mosh_default_timeout
             term.stdout.on "data", (data) ->
               result = "#{data}".trim().match mosh_matcher
@@ -76,8 +76,6 @@ app.post '/auth/:uuid', (req, res) ->
                 res.send "MOSH_KEY=#{mosh_key} #{mosh_client_command} #{mosh_server_host_ip} #{mosh_port}\n"
           else
             move_out res, "Reached maximum amount of logins (#{mosh_user_limit_logged_in_at_once}). Please retry later. (~#{mosh_default_timeout/1000}s)\n"
-        else
-          move_out res
 
 
 app.get '*', (req, res) ->
