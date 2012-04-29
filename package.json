@@ -1,0 +1,9 @@
+{
+  "name": "genmosh",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "express": "2.5.8",
+    "pty.js": "0.0.8"
+  }
+}
