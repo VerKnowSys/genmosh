@@ -5,19 +5,33 @@ express = require 'express'
 fs = require 'fs'
 pty = require "pty.js"
 
-
 app_port = 51233
 app_name = "genmosh"
-home_prefix = "/Users/"
+default_lag = 1000 # in ms
+home_prefix = "/SystemUsers/"
+server_shell_command = "/bin/svdshell"
+mosh_default_timeout = 60000 # in ms
+mosh_user_limit_logged_in_at_once = 5
 mosh_client_command = "mosh-client"
 mosh_server_command = "mosh-server"
-mosh_command_params = ["--", "svdshell"]
 mosh_server_host_ip = "78.46.95.147"
-mosh_keyfile = "mosh.authkey" 
+mosh_keyfile = "mosh.keys"
 mosh_terminal_cols = 80
 mosh_terminal_rows = 30
 mosh_matcher = /MOSH CONNECT (\d+?) ([\w*|\/|\+]+)/
 default_redirect_site = "http://www.verknowsys.com/"
+
+
+logged_in_users = [] # logged in user record
+
+
+move_out = (res, message = null) ->
+  setTimeout ->
+      if message
+        res.send message
+      else
+        res.redirect default_redirect_site
+    , default_lag
 
 
 app = module.exports = express.createServer()
@@ -28,41 +42,49 @@ app.configure ->
   app.use app.router
 
 
-app.post '/auth/:uid/:uuid', (req, res) ->
-  uid = req.params.uid
+app.post '/auth/:uuid', (req, res) ->
   uuid = req.params.uuid
-  file_path = "#{home_prefix}#{uid}/#{mosh_keyfile}"
+  file_path = "#{home_prefix}#{mosh_keyfile}"
   fs.readFile file_path, (err, input_data) ->
     if err
-      console.error "Bad try with UID: #{uid}, UUID: #{uuid}!"
-      res.redirect default_redirect_site
+      move_out res
     else
-      data = input_data.toString().trim()
-      console.log "Found authkey for UID: #{uid} -> UUID: #{uuid} in #{home_prefix}#{uid}/#{mosh_keyfile}"
-      if uuid == data
-        console.log "Matched authkey for UID: #{uid} -> #{data} == #{uuid}"
-        mosh_command_params.push(uid) # it's only required for ServeD Shell
-        term = pty.spawn "#{mosh_server_command}", mosh_command_params,
-          cols: mosh_terminal_cols
-          rows: mosh_terminal_rows
-        
-        term.stdout.on "data", (data) ->
-          result = "#{data}".trim().match mosh_matcher
-          if result
-            mosh_port = result[1]
-            mosh_key = result[2]
-            res.send "MOSH_KEY=#{mosh_key} #{mosh_client_command} #{mosh_server_host_ip} #{mosh_port}\n"
-        
-      else
-        console.error "Bad try with invalid match of #{data} vs #{uuid}"
-        res.redirect default_redirect_site
+      input_objects = JSON.parse "#{input_data}"
+      for object in input_objects
+        data = object.sha
+        uid = object.uid
+      
+        if uuid.indexOf(data) > -1 # fastest available way?
+          console.log "* Matched valid authkey for UID: #{uid} from IP: #{req.connection.remoteAddress} -> #{uuid} in #{home_prefix}#{mosh_keyfile}"
+          
+          logged_in_users[uid] = [] unless logged_in_users[uid] # add info about logged in user
+          if logged_in_users[uid].length < mosh_user_limit_logged_in_at_once
+            logged_in_users[uid].push uuid
+            console.log "* Logged in users with UID #{uid}: #{logged_in_users[uid].length}"
+            term = pty.spawn "#{mosh_server_command}", ["--", "#{server_shell_command}", uid],
+              cols: mosh_terminal_cols
+              rows: mosh_terminal_rows
+            setTimeout -> # after mosh session timeout, we may try log in again
+                logged_in_users[uid].pop()
+                console.log "* Popped passkey for UID: #{uid}. Remained sessions: #{logged_in_users[uid]}"
+              , mosh_default_timeout
+            term.stdout.on "data", (data) ->
+              result = "#{data}".trim().match mosh_matcher
+              if result
+                mosh_port = result[1]
+                mosh_key = result[2]
+                res.send "MOSH_KEY=#{mosh_key} #{mosh_client_command} #{mosh_server_host_ip} #{mosh_port}\n"
+          else
+            move_out res, "Reached maximum amount of logins (#{mosh_user_limit_logged_in_at_once}). Please retry later. (~#{mosh_default_timeout/1000}s)\n"
+        else
+          move_out res
 
 
 app.get '*', (req, res) ->
-  res.redirect default_redirect_site
+  move_out res
 
 app.post '*', (req, res) ->
-  res.redirect default_redirect_site
+  move_out res
 
 
 app.listen app_port
