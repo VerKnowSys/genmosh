@@ -69,7 +69,7 @@ app.post '/auth/:uuid', (req, res) ->
                 console.log "* Popped passkey for UID: #{uid}. Logged in users this UID: #{logged_in_users[uid].length}"
               , mosh_default_timeout
             term.stdout.on "data", (data) ->
-              result = "#{data}".trim().match mosh_matcher
+              result = data.match mosh_matcher
               if result
                 mosh_port = result[1]
                 mosh_key = result[2]
