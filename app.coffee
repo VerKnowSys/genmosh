@@ -66,7 +66,7 @@ app.post '/auth/:uuid', (req, res) ->
               rows: mosh_terminal_rows
             setTimeout -> # after mosh session timeout, we may try log in again
                 logged_in_users[uid].pop()
-                console.log "* Popped passkey for UID: #{uid}. Logged in users this UID: #{logged_in_users[uid].length}"
+                console.log "* Popped passkey for UID: #{uid}. Logged in users with this UID: #{logged_in_users[uid].length}"
               , mosh_default_timeout
             term.stdout.on "data", (data) ->
               result = data.match mosh_matcher
