@@ -22,11 +22,16 @@ It's obvious that http post example here is NOT secure. It's recommended to have
 
 ## Example usage:
 
-cat /SystemUsers/mosh.keys
-[{"sha": "31a512a8b358d6a3f3ed816464c3fba4fbde8f4f", "uid": "system-uid"}]
+Example mosh.keys:
+    $ → cat /SystemUsers/mosh.keys
+    [{"sha": "31a512a8b358d6a3f3ed816464c3fba4fbde8f4f", "uid": "system-uid"}]
 
-→ curl -X POST http://localhost:51233/auth/31a512a8b358d6a3f3ed816464c3fba4fbde8f4f 
-MOSH_KEY=KmLzPZkEXeYIHcm3l3hSnw mosh-client 78.46.95.147 60004
+Example request for auth:
+    $ → curl -X POST http://localhost:51233/auth/31a512a8b358d6a3f3ed816464c3fba4fbde8f4f 
+    MOSH_KEY=KmLzPZkEXeYIHcm3l3hSnw mosh-client 78.46.95.147 60004
+    
+Example login command:
+    $ → eval "$(curl -X POST http://fiend.verknowsys.com:51233/auth/31a512a8b358d6a3f3ed816464c3fba4fbde8f4f)"
 
 
 ## License:
