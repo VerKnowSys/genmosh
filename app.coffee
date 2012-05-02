@@ -8,19 +8,21 @@ pty = require "pty.js"
 app_port = 51233
 app_name = "genmosh"
 default_lag = 1000 # in ms
-home_prefix = "/SystemUsers/"
 server_shell_command = "/bin/svdshell"
 mosh_default_timeout = 60000 # in ms
 mosh_user_limit_logged_in_at_once = 5
 mosh_client_command = "mosh-client"
 mosh_server_command = "mosh-server"
 mosh_server_host_ip = "78.46.95.147"
-mosh_keyfile = "mosh.keys"
 mosh_terminal_cols = 80
 mosh_terminal_rows = 30
 mosh_matcher = /MOSH CONNECT (\d+?) ([\w*|\/|\+]+)/
 default_redirect_site = "http://www.verknowsys.com/"
-
+home_prefix = "/SystemUsers/"
+public_prefix = "/Public/"
+mosh_keyfile = "mosh.keys"
+mosh_socketfile = "mosh_auth.socket"
+listen_on = "#{public_prefix}#{mosh_socketfile}" # this might be also TCP port
 
 logged_in_users = [] # logged in user record
 
@@ -85,5 +87,5 @@ app.post '*', (req, res) ->
   move_out res
 
 
-app.listen app_port
-console.log "#{app_name} listening on port: #{app.address().port}"
+app.listen listen_on
+console.log "#{app_name} listening on socket: #{listen_on}"
