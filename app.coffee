@@ -25,15 +25,17 @@ mosh_keyfile = "Genmosh.keys"
 listen_on = 1000 # "#{public_prefix}#{mosh_socketfile}" # this might be also TCP port
 
 # sed pid file and remove hook
-pidfile "./Genmosh.pid"
+pidname = "/SystemUsers/SoftwareData/Genmosh/service.pid"
+pidfile "#{pidname}"
+
 process.on "SIGTERM", ->
   console.log "TERM: Removing pid file"
-  fs.unlink "./Genmosh.pid"
+  fs.unlink "#{pidname}"
   process.exit(0)
 
 process.on "SIGINT", ->
   console.log "INT: Removing pid file"
-  fs.unlink "./Genmosh.pid"
+  fs.unlink "#{pidname}"
   process.exit(0)
 
 logged_in_users = [] # logged in user record
