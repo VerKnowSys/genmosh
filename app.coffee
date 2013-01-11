@@ -1,28 +1,40 @@
 # © Copyright 2012 Daniel (dmilith) Dettlaff.
 #
 
-express = require 'express'
-fs = require 'fs'
+express = require "express"
+fs = require "fs"
 pty = require "pty.js"
+pidfile = require "pid"
 
-app_port = 51233
-app_name = "genmosh"
+app_name = "Genmosh"
 default_lag = 1000 # in ms
 server_shell_command = "/bin/svdshell"
 mosh_default_timeout = 60000 # in ms
 mosh_user_limit_logged_in_at_once = 5
 mosh_client_command = "mosh-client"
 mosh_server_command = "mosh-server"
-mosh_server_host_ip = "78.46.95.147"
+mosh_server_host_ip = "5.9.88.170"
 mosh_terminal_cols = 80
 mosh_terminal_rows = 30
 mosh_matcher = /MOSH CONNECT (\d+?) ([\w*|\/|\+]+)/
 default_redirect_site = "http://www.verknowsys.com/"
-home_prefix = "/SystemUsers/"
-public_prefix = "/Public/"
-mosh_keyfile = "mosh.keys"
-mosh_socketfile = "mosh_auth.socket"
-listen_on = "#{public_prefix}#{mosh_socketfile}" # this might be also TCP port
+home_prefix = "/SystemUsers/Security/"
+# public_prefix = "/Public/"
+mosh_keyfile = "Genmosh.keys"
+# mosh_socketfile = "mosh_auth.socket"
+listen_on = 1000 # "#{public_prefix}#{mosh_socketfile}" # this might be also TCP port
+
+# sed pid file and remove hook
+pidfile "./Genmosh.pid"
+process.on "SIGTERM", ->
+  console.log "TERM: Removing pid file"
+  fs.unlink "./Genmosh.pid"
+  process.exit(0)
+
+process.on "SIGINT", ->
+  console.log "INT: Removing pid file"
+  fs.unlink "./Genmosh.pid"
+  process.exit(0)
 
 logged_in_users = [] # logged in user record
 
@@ -56,9 +68,9 @@ app.post '/auth/:uuid', (req, res) ->
         if uuid.indexOf(object.sha) > -1
           data = object.sha
           uid = object.uid
-      
+
           console.log "* Matched valid authkey for UID: #{uid} from IP: #{req.connection.remoteAddress} -> #{uuid} in #{home_prefix}#{mosh_keyfile}"
-          
+
           logged_in_users[uid] = [] unless logged_in_users[uid] # add info about logged in user
           if logged_in_users[uid].length < mosh_user_limit_logged_in_at_once
             logged_in_users[uid].push uuid
@@ -88,4 +100,4 @@ app.post '*', (req, res) ->
 
 
 app.listen listen_on
-console.log "#{app_name} listening on socket: #{listen_on}"
+console.log "#{app_name} listening on port: #{listen_on}"
